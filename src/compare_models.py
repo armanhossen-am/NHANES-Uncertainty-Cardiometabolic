@@ -7,33 +7,74 @@ RESULTS = PROJECT / "results"
 TABLE_DIR = PROJECT / "paper" / "Paper_1" / "tables"
 TABLE_DIR.mkdir(parents=True, exist_ok=True)
 
-logistic_file = RESULTS / "baseline_logistic_by_scenario.csv"
-xgb_file = RESULTS / "xgboost_by_scenario.csv"
+files = [
+    RESULTS / "baseline_logistic_by_scenario.csv",
+    RESULTS / "xgboost_by_scenario.csv",
+]
 
-logistic = pd.read_csv(logistic_file)
-xgb = pd.read_csv(xgb_file)
+dfs = [pd.read_csv(f) for f in files if f.exists()]
+combined = pd.concat(dfs, ignore_index=True)
 
-combined = pd.concat([logistic, xgb], ignore_index=True)
+combined["scenario"] = combined["scenario"].replace({
+    "scenario_1": "Community screening",
+    "scenario_2": "Primary care screening",
+    "scenario_3": "Routine clinical assessment",
+})
 
-# Round values for manuscript table
-table = combined.copy()
-for col in ["auroc", "auprc", "f1", "prevalence_test"]:
-    if col in table.columns:
-        table[col] = table[col].round(3)
+combined["model"] = combined["model"].replace({
+    "logistic_regression": "Logistic regression",
+    "xgboost": "XGBoost",
+})
 
-table = table[
+combined["outcome"] = combined["outcome"].replace({
+    "undiagnosed_diabetes": "Undiagnosed diabetes",
+    "undiagnosed_hypertension": "Undiagnosed hypertension",
+    "undiagnosed_dyslipidemia": "Undiagnosed dyslipidemia",
+    "possible_ckd_risk": "Possible CKD risk",
+    "any_latent_cardiometabolic_disease": "Any latent cardiometabolic disease",
+})
+
+combined["AUROC (95% CI)"] = combined.apply(
+    lambda r: f"{r['auroc']:.3f} ({r['auroc_ci_low']:.3f}–{r['auroc_ci_high']:.3f})",
+    axis=1
+)
+
+combined["AUPRC (95% CI)"] = combined.apply(
+    lambda r: f"{r['auprc']:.3f} ({r['auprc_ci_low']:.3f}–{r['auprc_ci_high']:.3f})",
+    axis=1
+)
+
+table = combined[
     [
         "scenario",
         "outcome",
         "model",
-        "auroc",
-        "auprc",
+        "AUROC (95% CI)",
+        "AUPRC (95% CI)",
+        "accuracy",
+        "recall",
+        "specificity",
+        "precision",
         "f1",
+        "brier_score",
         "prevalence_test",
         "n_test",
         "n_predictors",
     ]
+].copy()
+
+round_cols = [
+    "accuracy",
+    "recall",
+    "specificity",
+    "precision",
+    "f1",
+    "brier_score",
+    "prevalence_test",
 ]
+
+for col in round_cols:
+    table[col] = table[col].round(3)
 
 table = table.sort_values(["scenario", "outcome", "model"])
 
