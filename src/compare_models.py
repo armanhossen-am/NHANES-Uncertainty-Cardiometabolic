@@ -12,6 +12,7 @@ files = [
     RESULTS / "random_forest_by_scenario.csv",
     RESULTS / "xgboost_by_scenario.csv",
     RESULTS / "lightgbm_by_scenario.csv",
+    RESULTS / "multitask_mlp_scenario_3.csv",
 ]
 
 dfs = [pd.read_csv(f) for f in files if f.exists()]
@@ -22,6 +23,7 @@ combined["model"] = combined["model"].replace({
     "random_forest": "Random Forest",
     "xgboost": "XGBoost",
     "lightgbm": "LightGBM",
+    "multitask_mlp": "Multi-task MLP",
 })
 
 combined["model"] = combined["model"].replace({
