@@ -108,6 +108,17 @@ def main():
             model.fit(X_train, y_train)
 
             prob = model.predict_proba(X_test)[:, 1]
+            pred_df = pd.DataFrame({
+    "scenario": scenario_name,
+    "outcome": outcome,
+    "model": "xgboost",
+    "y_true": y_test.values,
+    "y_prob": prob
+})
+
+pred_file = RESULTS / "predictions" / f"xgboost_{scenario_name}_{outcome}.csv"
+pred_file.parent.mkdir(parents=True, exist_ok=True)
+pred_df.to_csv(pred_file, index=False)
 
             row = evaluate_model(
                 y_true=y_test,
