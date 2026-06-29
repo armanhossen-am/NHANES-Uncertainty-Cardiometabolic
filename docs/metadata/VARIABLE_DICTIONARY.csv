@@ -1,0 +1,24 @@
+Variable,NHANES_Name,Category,Scenario_1,Scenario_2,Scenario_3,Diabetes,Hypertension,Dyslipidemia,CKD,Outcome_Only,Description
+RIDAGEYR,Age,Demographics,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,Age in years
+RIAGENDR,Sex,Demographics,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,Sex
+RIDRETH1,Race/Ethnicity,Demographics,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,Race/ethnicity
+DMDEDUC2,Education,Socioeconomic,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,Education level
+INDFMPIR,Poverty Income Ratio,Socioeconomic,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,Poverty-income ratio
+SMQ020,Smoking,Lifestyle,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,Smoking status
+ALQ101,Alcohol,Lifestyle,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,Alcohol use
+PAQ650,Physical Activity,Lifestyle,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,Moderate physical activity
+BMXBMI,BMI,Anthropometry,No,Yes,Yes,Yes,Yes,Yes,Yes,No,Body Mass Index
+BMXWAIST,Waist Circumference,Anthropometry,No,Yes,Yes,Yes,Yes,Yes,Yes,No,Waist circumference
+BPXSY1,Systolic BP,Examination,No,Yes,Yes,Yes,No,Yes,Yes,No,Systolic blood pressure
+BPXDI1,Diastolic BP,Examination,No,Yes,Yes,Yes,No,Yes,Yes,No,Diastolic blood pressure
+LBXTC,Total Cholesterol,Laboratory,No,No,Yes,Yes,Yes,No,Yes,Yes,Total cholesterol
+LBDHDD,HDL Cholesterol,Laboratory,No,No,Yes,Yes,Yes,No,Yes,Yes,HDL cholesterol
+LBXTR,Triglycerides,Laboratory,No,No,Yes,Yes,Yes,No,Yes,Yes,Triglycerides
+LBXSCR,Serum Creatinine,Laboratory,No,No,Yes,Yes,Yes,Yes,No,No,Serum creatinine
+LBXGH,HbA1c,Laboratory,No,No,No,No,Yes,Yes,Yes,Yes,Outcome-only diabetes biomarker
+LBXGLU,Fasting Glucose,Laboratory,No,No,No,No,Yes,Yes,Yes,Yes,Outcome-only diabetes biomarker
+URXUMA,Urine Albumin,Laboratory,No,No,No,Yes,Yes,Yes,No,Yes,Outcome-only CKD marker
+URXUCR,Urine Creatinine,Laboratory,No,No,No,Yes,Yes,Yes,No,Yes,Outcome-only CKD marker
+DIQ010,Doctor Told Diabetes,Questionnaire,Yes,Yes,Yes,No,No,No,No,Yes,Used to define known diabetes
+BPQ020,Doctor Told Hypertension,Questionnaire,Yes,Yes,Yes,No,No,No,No,Yes,Used to define known hypertension
+BPQ080,Doctor Told High Cholesterol,Questionnaire,Yes,Yes,Yes,No,No,No,No,Yes,Used to define known high cholesterol
