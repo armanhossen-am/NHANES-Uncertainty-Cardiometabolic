@@ -15,7 +15,10 @@ PROJECT = Path(r"F:\MU\Research\ML\NHANES_Project")
 
 SCENARIO_DIR = PROJECT / "data" / "modeling" / "scenarios"
 RESULTS = PROJECT / "results"
+PRED_DIR = RESULTS / "predictions"
+
 RESULTS.mkdir(exist_ok=True)
+PRED_DIR.mkdir(parents=True, exist_ok=True)
 
 OUTCOMES = [
     "undiagnosed_diabetes",
@@ -36,18 +39,22 @@ def build_preprocessor(X):
         transformers=[
             (
                 "num",
-                Pipeline([
-                    ("imputer", SimpleImputer(strategy="median")),
-                    ("scaler", StandardScaler()),
-                ]),
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="median")),
+                        ("scaler", StandardScaler()),
+                    ]
+                ),
                 numeric,
             ),
             (
                 "cat",
-                Pipeline([
-                    ("imputer", SimpleImputer(strategy="most_frequent")),
-                    ("onehot", OneHotEncoder(handle_unknown="ignore")),
-                ]),
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="most_frequent")),
+                        ("onehot", OneHotEncoder(handle_unknown="ignore")),
+                    ]
+                ),
                 categorical,
             ),
         ]
@@ -80,33 +87,37 @@ def main():
                 stratify=y,
             )
 
-            model = Pipeline([
-                ("preprocess", build_preprocessor(X)),
-                (
-                    "classifier",
-                    LogisticRegression(
-                        max_iter=1000,
-                        class_weight="balanced",
-                        solver="lbfgs",
+            model = Pipeline(
+                [
+                    ("preprocess", build_preprocessor(X)),
+                    (
+                        "classifier",
+                        LogisticRegression(
+                            max_iter=1000,
+                            class_weight="balanced",
+                            solver="lbfgs",
+                        ),
                     ),
-                ),
-            ])
+                ]
+            )
 
             print(f"Training logistic regression | {scenario_name} | {outcome}")
             model.fit(X_train, y_train)
 
             prob = model.predict_proba(X_test)[:, 1]
-            pred_df = pd.DataFrame({
-    "scenario": scenario_name,
-    "outcome": outcome,
-    "model": "logistic_regression",
-    "y_true": y_test.values,
-    "y_prob": prob
-})
 
-pred_file = RESULTS / "predictions" / f"logistic_regression_{scenario_name}_{outcome}.csv"
-pred_file.parent.mkdir(parents=True, exist_ok=True)
-pred_df.to_csv(pred_file, index=False)
+            pred_df = pd.DataFrame(
+                {
+                    "scenario": scenario_name,
+                    "outcome": outcome,
+                    "model": "logistic_regression",
+                    "y_true": y_test.values,
+                    "y_prob": prob,
+                }
+            )
+
+            pred_file = PRED_DIR / f"logistic_regression_{scenario_name}_{outcome}.csv"
+            pred_df.to_csv(pred_file, index=False)
 
             row = evaluate_model(
                 y_true=y_test,
@@ -128,6 +139,7 @@ pred_df.to_csv(pred_file, index=False)
 
     print(results_df)
     print("\nSaved:", output_file)
+    print("Predictions saved to:", PRED_DIR)
 
 
 if __name__ == "__main__":

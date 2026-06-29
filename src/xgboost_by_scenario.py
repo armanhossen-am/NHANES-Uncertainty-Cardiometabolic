@@ -16,7 +16,10 @@ PROJECT = Path(r"F:\MU\Research\ML\NHANES_Project")
 
 SCENARIO_DIR = PROJECT / "data" / "modeling" / "scenarios"
 RESULTS = PROJECT / "results"
+PRED_DIR = RESULTS / "predictions"
+
 RESULTS.mkdir(exist_ok=True)
+PRED_DIR.mkdir(parents=True, exist_ok=True)
 
 OUTCOMES = [
     "undiagnosed_diabetes",
@@ -37,18 +40,22 @@ def build_preprocessor(X):
         transformers=[
             (
                 "num",
-                Pipeline([
-                    ("imputer", SimpleImputer(strategy="median")),
-                    ("scaler", StandardScaler()),
-                ]),
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="median")),
+                        ("scaler", StandardScaler()),
+                    ]
+                ),
                 numeric,
             ),
             (
                 "cat",
-                Pipeline([
-                    ("imputer", SimpleImputer(strategy="most_frequent")),
-                    ("onehot", OneHotEncoder(handle_unknown="ignore")),
-                ]),
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="most_frequent")),
+                        ("onehot", OneHotEncoder(handle_unknown="ignore")),
+                    ]
+                ),
                 categorical,
             ),
         ]
@@ -85,40 +92,44 @@ def main():
             neg = len(y_train) - pos
             scale_pos_weight = neg / pos if pos > 0 else 1
 
-            model = Pipeline([
-                ("preprocess", build_preprocessor(X)),
-                (
-                    "classifier",
-                    XGBClassifier(
-                        n_estimators=300,
-                        max_depth=3,
-                        learning_rate=0.03,
-                        subsample=0.85,
-                        colsample_bytree=0.85,
-                        objective="binary:logistic",
-                        eval_metric="logloss",
-                        scale_pos_weight=scale_pos_weight,
-                        random_state=42,
-                        n_jobs=-1,
+            model = Pipeline(
+                [
+                    ("preprocess", build_preprocessor(X)),
+                    (
+                        "classifier",
+                        XGBClassifier(
+                            n_estimators=300,
+                            max_depth=3,
+                            learning_rate=0.03,
+                            subsample=0.85,
+                            colsample_bytree=0.85,
+                            objective="binary:logistic",
+                            eval_metric="logloss",
+                            scale_pos_weight=scale_pos_weight,
+                            random_state=42,
+                            n_jobs=-1,
+                        ),
                     ),
-                ),
-            ])
+                ]
+            )
 
             print(f"Training XGBoost | {scenario_name} | {outcome}")
             model.fit(X_train, y_train)
 
             prob = model.predict_proba(X_test)[:, 1]
-            pred_df = pd.DataFrame({
-    "scenario": scenario_name,
-    "outcome": outcome,
-    "model": "xgboost",
-    "y_true": y_test.values,
-    "y_prob": prob
-})
 
-pred_file = RESULTS / "predictions" / f"xgboost_{scenario_name}_{outcome}.csv"
-pred_file.parent.mkdir(parents=True, exist_ok=True)
-pred_df.to_csv(pred_file, index=False)
+            pred_df = pd.DataFrame(
+                {
+                    "scenario": scenario_name,
+                    "outcome": outcome,
+                    "model": "xgboost",
+                    "y_true": y_test.values,
+                    "y_prob": prob,
+                }
+            )
+
+            pred_file = PRED_DIR / f"xgboost_{scenario_name}_{outcome}.csv"
+            pred_df.to_csv(pred_file, index=False)
 
             row = evaluate_model(
                 y_true=y_test,
@@ -141,6 +152,7 @@ pred_df.to_csv(pred_file, index=False)
 
     print(results_df)
     print("\nSaved:", output_file)
+    print("Predictions saved to:", PRED_DIR)
 
 
 if __name__ == "__main__":
