@@ -10,6 +10,7 @@ TABLE_DIR.mkdir(parents=True, exist_ok=True)
 files = [
     RESULTS / "baseline_logistic_by_scenario.csv",
     RESULTS / "xgboost_by_scenario.csv",
+    RESULTS / "random_forest_by_scenario.csv",
 ]
 
 dfs = [pd.read_csv(f) for f in files if f.exists()]
@@ -24,6 +25,7 @@ combined["scenario"] = combined["scenario"].replace({
 combined["model"] = combined["model"].replace({
     "logistic_regression": "Logistic regression",
     "xgboost": "XGBoost",
+    "random_forest": "Random Forest",
 })
 
 combined["outcome"] = combined["outcome"].replace({
@@ -63,7 +65,7 @@ table = combined[
     ]
 ].copy()
 
-round_cols = [
+for col in [
     "accuracy",
     "recall",
     "specificity",
@@ -71,9 +73,7 @@ round_cols = [
     "f1",
     "brier_score",
     "prevalence_test",
-]
-
-for col in round_cols:
+]:
     table[col] = table[col].round(3)
 
 table = table.sort_values(["scenario", "outcome", "model"])
