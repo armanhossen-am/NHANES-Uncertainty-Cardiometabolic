@@ -2,7 +2,6 @@ from pathlib import Path
 import pandas as pd
 import pyreadstat
 
-
 PROJECT = Path(r"F:\MU\Research\ML\NHANES_Project")
 
 RAW = PROJECT / "data" / "raw"
@@ -20,8 +19,12 @@ CYCLE_MAP = {
 
 
 def read_xpt(file_path):
-    df, meta = pyreadstat.read_xport(str(file_path))
-    return df
+    try:
+        df, meta = pyreadstat.read_xport(str(file_path))
+        return df
+    except Exception as e:
+        print(f"SKIPPED bad file: {file_path.name} | {e}")
+        return None
 
 
 def get_cycle_from_filename(file_path):
@@ -35,8 +38,11 @@ def merge_cycle(files):
     for file_path in files:
         df = read_xpt(file_path)
 
+        if df is None:
+            continue
+
         if "SEQN" not in df.columns:
-            print(f"Skipped no SEQN: {file_path.name}")
+            print(f"SKIPPED no SEQN: {file_path.name}")
             continue
 
         print(f"Loaded {file_path.name}: {df.shape}")
@@ -58,8 +64,7 @@ def main():
     all_files = []
 
     for folder in DATA_FOLDERS:
-        folder_path = RAW / folder
-        all_files.extend(folder_path.glob("*.XPT"))
+        all_files.extend((RAW / folder).glob("*.XPT"))
 
     print(f"Found {len(all_files)} XPT files")
 
@@ -70,7 +75,6 @@ def main():
         if cycle is None:
             print(f"Unknown cycle skipped: {file_path.name}")
             continue
-
         cycle_files.setdefault(cycle, []).append(file_path)
 
     merged_cycles = []
@@ -83,6 +87,7 @@ def main():
         merged = merge_cycle(files)
 
         if merged is None:
+            print(f"No valid files for {cycle}")
             continue
 
         merged["cycle"] = cycle
@@ -94,6 +99,9 @@ def main():
         print(f"Shape: {merged.shape}")
 
         merged_cycles.append(merged)
+
+    if not merged_cycles:
+        raise RuntimeError("No merged cycles were created.")
 
     master = pd.concat(merged_cycles, ignore_index=True)
 
