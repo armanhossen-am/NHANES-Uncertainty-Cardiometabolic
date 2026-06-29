@@ -1,0 +1,17 @@
+# Data files
+data/raw/
+data/interim/
+data/processed/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Models and logs
+models/
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
