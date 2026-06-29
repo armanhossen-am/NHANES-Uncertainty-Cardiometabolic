@@ -9,17 +9,19 @@ TABLE_DIR.mkdir(parents=True, exist_ok=True)
 
 files = [
     RESULTS / "baseline_logistic_by_scenario.csv",
-    RESULTS / "xgboost_by_scenario.csv",
     RESULTS / "random_forest_by_scenario.csv",
+    RESULTS / "xgboost_by_scenario.csv",
+    RESULTS / "lightgbm_by_scenario.csv",
 ]
 
 dfs = [pd.read_csv(f) for f in files if f.exists()]
 combined = pd.concat(dfs, ignore_index=True)
 
-combined["scenario"] = combined["scenario"].replace({
-    "scenario_1": "Community screening",
-    "scenario_2": "Primary care screening",
-    "scenario_3": "Routine clinical assessment",
+combined["model"] = combined["model"].replace({
+    "logistic_regression": "Logistic regression",
+    "random_forest": "Random Forest",
+    "xgboost": "XGBoost",
+    "lightgbm": "LightGBM",
 })
 
 combined["model"] = combined["model"].replace({
