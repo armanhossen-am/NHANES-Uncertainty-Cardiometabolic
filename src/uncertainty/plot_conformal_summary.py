@@ -9,11 +9,11 @@ CONFORMAL_DIR = PROJECT / "results" / "conformal"
 FIG_DIR = PROJECT / "paper" / "Paper_1" / "figures"
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 
-FILE = CONFORMAL_DIR / "conformal_summary_random_forest_scenario_3.csv"
+FILE = CONFORMAL_DIR / "conformal_summary_all_models_scenario_3.csv"
 
 df = pd.read_csv(FILE)
 
-label_map = {
+outcome_map = {
     "undiagnosed_diabetes": "Diabetes",
     "undiagnosed_hypertension": "Hypertension",
     "undiagnosed_dyslipidemia": "Dyslipidemia",
@@ -21,64 +21,74 @@ label_map = {
     "any_latent_cardiometabolic_disease": "Any latent disease",
 }
 
-df["Outcome"] = df["outcome"].map(label_map)
+model_map = {
+    "logistic_regression": "Logistic",
+    "random_forest": "Random Forest",
+    "xgboost": "XGBoost",
+    "lightgbm": "LightGBM",
+    "multitask_mlp": "Multi-task MLP",
+    "multitask_residual_mlp": "Residual MTL-MLP",
+}
+
+df["Outcome"] = df["outcome"].map(outcome_map)
+df["Model"] = df["model"].map(model_map)
 
 plt.rcParams.update({
     "font.family": "Arial",
-    "font.size": 11,
+    "font.size": 10,
     "axes.spines.top": False,
     "axes.spines.right": False,
     "figure.dpi": 300,
     "savefig.dpi": 300,
 })
 
-x = np.arange(len(df))
-width = 0.35
+fig, axes = plt.subplots(2, 1, figsize=(12, 9), sharex=True)
 
-fig, ax = plt.subplots(figsize=(10, 5.5))
+pivot_cov = df.pivot(index="Outcome", columns="Model", values="empirical_coverage")
+pivot_unc = df.pivot(index="Outcome", columns="Model", values="uncertainty_rate")
 
-ax.bar(
-    x - width / 2,
-    df["empirical_coverage"],
-    width,
-    label="Empirical coverage",
-    edgecolor="black",
-    linewidth=0.5,
-)
+outcome_order = ["Diabetes", "Hypertension", "Dyslipidemia", "CKD risk", "Any latent disease"]
+pivot_cov = pivot_cov.reindex(outcome_order)
+pivot_unc = pivot_unc.reindex(outcome_order)
 
-ax.bar(
-    x + width / 2,
-    df["uncertainty_rate"],
-    width,
-    label="Uncertainty rate",
-    edgecolor="black",
-    linewidth=0.5,
-)
+pivot_cov.plot(kind="bar", ax=axes[0], width=0.82, edgecolor="black", linewidth=0.3)
+axes[0].axhline(0.90, linestyle="--", linewidth=1.2, color="gray", label="Target coverage")
+axes[0].set_ylabel("Empirical coverage")
+axes[0].set_ylim(0, 1.05)
+axes[0].set_title("(A) Empirical coverage", loc="left", fontweight="bold")
+axes[0].grid(axis="y", alpha=0.25)
+axes[0].legend(frameon=False, fontsize=8, ncol=3)
 
-ax.axhline(
-    df["target_coverage"].iloc[0],
-    linestyle="--",
-    linewidth=1.3,
-    color="gray",
-    label="Target coverage",
-)
+pivot_unc.plot(kind="bar", ax=axes[1], width=0.82, edgecolor="black", linewidth=0.3)
+axes[1].set_ylabel("Uncertainty rate")
+axes[1].set_ylim(0, 1.05)
+axes[1].set_title("(B) Non-singleton prediction set rate", loc="left", fontweight="bold")
+axes[1].grid(axis="y", alpha=0.25)
+axes[1].legend(frameon=False, fontsize=8, ncol=3)
 
-ax.set_xticks(x)
-ax.set_xticklabels(df["Outcome"], rotation=25, ha="right")
-ax.set_ylabel("Proportion")
-ax.set_ylim(0, 1.05)
-ax.set_title(
-    "Figure 10. Conformal prediction coverage and uncertainty",
-    fontsize=15,
+axes[1].set_xlabel("Outcome")
+axes[1].set_xticklabels(outcome_order, rotation=25, ha="right")
+
+fig.suptitle(
+    "Figure 10. Conformal prediction performance across models",
+    fontsize=16,
     fontweight="bold",
+    y=0.995,
 )
-ax.legend(frameon=False)
-ax.grid(axis="y", alpha=0.25)
 
-plt.tight_layout()
+fig.text(
+    0.01,
+    0.01,
+    "Split conformal prediction was applied at 90% target coverage under the routine clinical assessment scenario. "
+    "Uncertainty rate represents the proportion of non-singleton prediction sets.",
+    fontsize=9,
+    color="#4B5563",
+)
 
-plt.savefig(FIG_DIR / "figure_10_conformal_summary.png", dpi=300, bbox_inches="tight")
-plt.savefig(FIG_DIR / "figure_10_conformal_summary.pdf", bbox_inches="tight")
-plt.savefig(FIG_DIR / "figure_10_conformal_summary.svg", bbox_inches="tight")
+plt.tight_layout(rect=[0, 0.04, 1, 0.96])
 
-print("Saved Figure 10 to:", FIG_DIR)
+plt.savefig(FIG_DIR / "figure_10_conformal_summary_all_models.png", dpi=300, bbox_inches="tight")
+plt.savefig(FIG_DIR / "figure_10_conformal_summary_all_models.pdf", bbox_inches="tight")
+plt.savefig(FIG_DIR / "figure_10_conformal_summary_all_models.svg", bbox_inches="tight")
+
+print("Saved Figure 10.")

@@ -8,7 +8,7 @@ CONFORMAL_DIR = PROJECT / "results" / "conformal"
 TABLE_DIR = PROJECT / "paper" / "Paper_1" / "tables"
 TABLE_DIR.mkdir(parents=True, exist_ok=True)
 
-FILE = CONFORMAL_DIR / "conformal_summary_random_forest_scenario_3.csv"
+FILE = CONFORMAL_DIR / "conformal_summary_all_models_scenario_3.csv"
 
 df = pd.read_csv(FILE)
 
@@ -20,8 +20,18 @@ df["outcome"] = df["outcome"].replace({
     "any_latent_cardiometabolic_disease": "Any latent cardiometabolic disease",
 })
 
+df["model"] = df["model"].replace({
+    "logistic_regression": "Logistic regression",
+    "random_forest": "Random Forest",
+    "xgboost": "XGBoost",
+    "lightgbm": "LightGBM",
+    "multitask_mlp": "Multi-task MLP",
+    "multitask_residual_mlp": "Residual multi-task MLP",
+})
+
 table = df[
     [
+        "model",
         "outcome",
         "target_coverage",
         "empirical_coverage",
@@ -35,6 +45,7 @@ table = df[
 ].copy()
 
 table.columns = [
+    "Model",
     "Outcome",
     "Target coverage",
     "Empirical coverage",
@@ -56,10 +67,12 @@ for col in [
 ]:
     table[col] = table[col].round(3)
 
-table.to_csv(TABLE_DIR / "table_3_conformal_prediction.csv", index=False)
+table = table.sort_values(["Outcome", "Model"])
 
-fig_height = max(4, len(table) * 0.55)
-fig, ax = plt.subplots(figsize=(13, fig_height))
+table.to_csv(TABLE_DIR / "table_3_conformal_prediction_all_models.csv", index=False)
+
+fig_height = max(8, len(table) * 0.28)
+fig, ax = plt.subplots(figsize=(16, fig_height))
 ax.axis("off")
 
 tbl = ax.table(
@@ -71,12 +84,12 @@ tbl = ax.table(
 )
 
 tbl.auto_set_font_size(False)
-tbl.set_fontsize(8.5)
-tbl.scale(1, 1.5)
+tbl.set_fontsize(7.5)
+tbl.scale(1, 1.35)
 
 for (row, col), cell in tbl.get_celld().items():
     cell.set_edgecolor("#D1D5DB")
-    cell.set_linewidth(0.4)
+    cell.set_linewidth(0.35)
 
     if row == 0:
         cell.set_facecolor("#E8F1FA")
@@ -85,7 +98,7 @@ for (row, col), cell in tbl.get_celld().items():
         cell.set_facecolor("#FFFFFF" if row % 2 else "#F9FAFB")
 
 ax.set_title(
-    "Table 3. Conformal prediction performance under routine clinical assessment",
+    "Table 3. Conformal prediction performance across models",
     fontsize=14,
     fontweight="bold",
     pad=18,
@@ -93,8 +106,8 @@ ax.set_title(
 
 ax.text(
     0,
-    -0.08,
-    "Prediction sets were generated using split conformal prediction with target coverage of 90%. "
+    -0.04,
+    "Prediction sets were generated using split conformal prediction with 90% target coverage. "
     "Uncertainty rate represents the proportion of non-singleton prediction sets.",
     transform=ax.transAxes,
     fontsize=9,
@@ -103,8 +116,8 @@ ax.text(
 
 plt.tight_layout()
 
-plt.savefig(TABLE_DIR / "table_3_conformal_prediction.png", dpi=300, bbox_inches="tight")
-plt.savefig(TABLE_DIR / "table_3_conformal_prediction.pdf", bbox_inches="tight")
+plt.savefig(TABLE_DIR / "table_3_conformal_prediction_all_models.png", dpi=300, bbox_inches="tight")
+plt.savefig(TABLE_DIR / "table_3_conformal_prediction_all_models.pdf", bbox_inches="tight")
 plt.close()
 
-print("Saved Table 3 to:", TABLE_DIR)
+print("Saved Table 3.")
