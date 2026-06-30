@@ -1,20 +1,26 @@
 from pathlib import Path
-import sys
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
 PROJECT = Path(r"F:\MU\Research\ML\NHANES_Project")
-sys.path.append(str(PROJECT / "src"))
 
 PRED_DIR = PROJECT / "results" / "predictions"
-RESULTS = PROJECT / "results"
-OUT_DIR = RESULTS / "conformal"
+OUT_DIR = PROJECT / "results" / "conformal"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-MODEL = "random_forest"
+ALPHA = 0.10
+
+MODELS = [
+    "logistic_regression",
+    "random_forest",
+    "xgboost",
+    "lightgbm",
+    "multitask_mlp",
+    "multitask_residual_mlp",
+]
+
 SCENARIO = "scenario_3"
-ALPHA = 0.10  # 90% target coverage
 
 OUTCOMES = [
     "undiagnosed_diabetes",
@@ -32,109 +38,99 @@ def conformal_quantile(scores, alpha):
     return np.quantile(scores, q_level, method="higher")
 
 
-def make_prediction_set(p, qhat):
+def prediction_set_binary(p, qhat):
     include_0 = p <= qhat
     include_1 = (1 - p) <= qhat
 
     if include_0 and include_1:
         return "{0,1}", 2
-    elif include_1:
+    if include_1:
         return "{1}", 1
-    elif include_0:
+    if include_0:
         return "{0}", 1
-    else:
-        return "{}", 0
+    return "{}", 0
 
 
 def main():
-    all_summary = []
+    summaries = []
     all_predictions = []
 
-    for outcome in OUTCOMES:
-        file = PRED_DIR / f"{MODEL}_{SCENARIO}_{outcome}.csv"
+    for model in MODELS:
+        for outcome in OUTCOMES:
+            pred_file = PRED_DIR / f"{model}_{SCENARIO}_{outcome}.csv"
 
-        if not file.exists():
-            print("Missing:", file)
-            continue
+            if not pred_file.exists():
+                print("Missing:", pred_file.name)
+                continue
 
-        df = pd.read_csv(file)
+            df = pd.read_csv(pred_file)
 
-        calib_df, eval_df = train_test_split(
-            df,
-            test_size=0.50,
-            random_state=42,
-            stratify=df["y_true"],
-        )
+            calib_df, eval_df = train_test_split(
+                df,
+                test_size=0.50,
+                random_state=42,
+                stratify=df["y_true"],
+            )
 
-        # nonconformity score = 1 - probability assigned to true class
-        calib_scores = np.where(
-            calib_df["y_true"] == 1,
-            1 - calib_df["y_prob"],
-            calib_df["y_prob"],
-        )
+            scores = np.where(
+                calib_df["y_true"] == 1,
+                1 - calib_df["y_prob"],
+                calib_df["y_prob"],
+            )
 
-        qhat = conformal_quantile(calib_scores, ALPHA)
+            qhat = conformal_quantile(scores, ALPHA)
 
-        eval_sets = []
-        set_sizes = []
-        covered = []
+            sets = []
+            sizes = []
+            covered = []
 
-        for _, row in eval_df.iterrows():
-            pred_set, size = make_prediction_set(row["y_prob"], qhat)
+            for _, row in eval_df.iterrows():
+                pred_set, size = prediction_set_binary(row["y_prob"], qhat)
 
-            if row["y_true"] == 1:
-                is_covered = "1" in pred_set
-            else:
-                is_covered = "0" in pred_set
+                is_covered = (
+                    ("1" in pred_set) if row["y_true"] == 1 else ("0" in pred_set)
+                )
 
-            eval_sets.append(pred_set)
-            set_sizes.append(size)
-            covered.append(is_covered)
+                sets.append(pred_set)
+                sizes.append(size)
+                covered.append(is_covered)
 
-        eval_df = eval_df.copy()
-        eval_df["conformal_set"] = eval_sets
-        eval_df["set_size"] = set_sizes
-        eval_df["covered"] = covered
-        eval_df["qhat"] = qhat
-        eval_df["alpha"] = ALPHA
+            eval_df = eval_df.copy()
+            eval_df["conformal_set"] = sets
+            eval_df["set_size"] = sizes
+            eval_df["covered"] = covered
+            eval_df["qhat"] = qhat
+            eval_df["alpha"] = ALPHA
+            eval_df["model"] = model
+            eval_df["scenario"] = SCENARIO
+            eval_df["outcome"] = outcome
 
-        coverage = np.mean(covered)
-        avg_set_size = np.mean(set_sizes)
-        uncertainty_rate = np.mean(np.array(set_sizes) == 2)
-        singleton_rate = np.mean(np.array(set_sizes) == 1)
-        empty_rate = np.mean(np.array(set_sizes) == 0)
+            summaries.append({
+                "model": model,
+                "scenario": SCENARIO,
+                "outcome": outcome,
+                "alpha": ALPHA,
+                "target_coverage": 1 - ALPHA,
+                "empirical_coverage": np.mean(covered),
+                "average_set_size": np.mean(sizes),
+                "uncertainty_rate": np.mean(np.array(sizes) == 2),
+                "singleton_rate": np.mean(np.array(sizes) == 1),
+                "empty_rate": np.mean(np.array(sizes) == 0),
+                "qhat": qhat,
+                "n_calibration": len(calib_df),
+                "n_evaluation": len(eval_df),
+            })
 
-        all_summary.append({
-            "model": MODEL,
-            "scenario": SCENARIO,
-            "outcome": outcome,
-            "alpha": ALPHA,
-            "target_coverage": 1 - ALPHA,
-            "empirical_coverage": coverage,
-            "average_set_size": avg_set_size,
-            "uncertainty_rate": uncertainty_rate,
-            "singleton_rate": singleton_rate,
-            "empty_rate": empty_rate,
-            "qhat": qhat,
-            "n_calibration": len(calib_df),
-            "n_evaluation": len(eval_df),
-        })
+            all_predictions.append(eval_df)
 
-        eval_df["outcome"] = outcome
-        all_predictions.append(eval_df)
+    summary_df = pd.DataFrame(summaries)
+    predictions_df = pd.concat(all_predictions, ignore_index=True)
 
-    summary_df = pd.DataFrame(all_summary)
-    pred_df = pd.concat(all_predictions, ignore_index=True)
-
-    summary_file = OUT_DIR / f"conformal_summary_{MODEL}_{SCENARIO}.csv"
-    pred_file = OUT_DIR / f"conformal_predictions_{MODEL}_{SCENARIO}.csv"
-
-    summary_df.to_csv(summary_file, index=False)
-    pred_df.to_csv(pred_file, index=False)
+    summary_df.to_csv(OUT_DIR / "conformal_summary_all_models_scenario_3.csv", index=False)
+    predictions_df.to_csv(OUT_DIR / "conformal_predictions_all_models_scenario_3.csv", index=False)
 
     print(summary_df)
-    print("\nSaved:", summary_file)
-    print("Saved:", pred_file)
+    print("\nSaved conformal summary and predictions.")
 
 
 if __name__ == "__main__":
