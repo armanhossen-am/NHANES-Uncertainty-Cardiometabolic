@@ -20,17 +20,31 @@ OUTCOMES = [
     "any_latent_cardiometabolic_disease",
 ]
 
-OUTCOME_LABELS = {
-    "undiagnosed_diabetes":"(A) Undiagnosed diabetes",
-    "undiagnosed_hypertension":"(B) Undiagnosed hypertension",
-    "undiagnosed_dyslipidemia":"(C) Undiagnosed dyslipidemia",
-    "possible_ckd_risk":"(D) Possible CKD risk",
-    "any_latent_cardiometabolic_disease":"(E) Any latent disease",
+MODELS = [
+    "logistic_regression",
+    "random_forest",
+    "xgboost",
+    "lightgbm",
+    "multitask_mlp",
+    "multitask_residual_mlp",
+]
+
+MODEL_LABELS = {
+    "logistic_regression": "Logistic",
+    "random_forest": "Random Forest",
+    "xgboost": "XGBoost",
+    "lightgbm": "LightGBM",
+    "multitask_mlp": "MTL-MLP",
+    "multitask_residual_mlp": "Residual MTL-MLP",
 }
 
 COLORS = {
-    "logistic_regression":"#0072B2",
-    "xgboost":"#D55E00",
+    "logistic_regression": "#0072B2",
+    "random_forest": "#009E73",
+    "xgboost": "#D55E00",
+    "lightgbm": "#CC79A7",
+    "multitask_mlp": "#F0E442",
+    "multitask_residual_mlp": "#56B4E9",
 }
 
 MODELS = {
